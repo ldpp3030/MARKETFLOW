@@ -1,0 +1,50 @@
+<div class="login-page">
+  <form class="login-card" (submit)="submit($event)" novalidate>
+    <div class="brand">MARKET<span>FLOW</span></div>
+    <h1>Inicia sesión</h1>
+    <p class="subtitle">Ingresa para enviar tus pedidos a la caja.</p>
+
+    <label for="email">Correo electrónico</label>
+    <input
+      id="email"
+      type="email"
+      autocomplete="email"
+      placeholder="operador@marketflow.com"
+      [value]="email()"
+      (input)="onEmailInput($event)"
+    />
+
+    <label for="password">Contraseña</label>
+    <div class="password-field">
+      <input
+        id="password"
+        [type]="showPassword() ? 'text' : 'password'"
+        autocomplete="current-password"
+        placeholder="••••••"
+        [value]="password()"
+        (input)="onPasswordInput($event)"
+      />
+      <button
+        type="button"
+        class="toggle-visibility"
+        (click)="togglePasswordVisibility()"
+        [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+      >
+        {{ showPassword() ? '🙈' : '👁' }}
+      </button>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" [checked]="showPassword()" (change)="togglePasswordVisibility()" />
+      Mostrar contraseña
+    </label>
+
+    @if (errorMessage()) {
+      <p class="error-msg" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" class="submit-btn">Iniciar Sesión</button>
+
+    <a class="back-link" routerLink="/tienda">Volver a la tienda</a>
+  </form>
+</div>

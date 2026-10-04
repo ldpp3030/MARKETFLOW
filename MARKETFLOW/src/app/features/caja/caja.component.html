@@ -1,0 +1,279 @@
+<div class="pos-page">
+  <header class="top-header">
+    <div class="header-container">
+      <div class="brand">
+        MARKET<span>FLOW</span>
+        <small class="module-tag">| POS CAJA 01</small>
+      </div>
+
+      <nav class="module-links" aria-label="Módulos">
+        <a routerLink="/tienda">Tienda</a>
+        <a routerLink="/pasillo">Pasillos</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="caja-layout">
+    <aside class="orders-queue">
+      <div class="queue-header">
+        <h2>Pedidos en Cola</h2>
+        <span class="badge-count">{{ pendingOrders().length }} pendientes</span>
+      </div>
+
+      <div class="orders-list">
+        @for (order of pendingOrders(); track order.id) {
+          <button
+            type="button"
+            class="order-card"
+            [class.active]="selectedOrderId() === order.id"
+            (click)="selectOrder(order.id)"
+          >
+            <span class="order-card-top">
+              <strong>{{ order.id }}</strong>
+              <strong>{{ order.total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+            </span>
+            <span class="order-card-meta">
+              <span class="origin-tag" [class.web]="order.origin === 'TIENDA'">
+                {{ originLabel(order.origin) }}
+              </span>
+              <span>⏰ {{ order.date | date: 'h:mm a' }}</span>
+              <span>{{ orderItemCount(order) }} art.</span>
+            </span>
+          </button>
+        } @empty {
+          <p class="empty-msg">No hay pedidos en espera.</p>
+        }
+      </div>
+    </aside>
+
+    <main class="active-order-panel">
+      <div class="panel-header">
+        <div>
+          <h2>
+            @if (selectedOrder(); as order) {
+              Pedido: {{ order.id }}
+            } @else {
+              Selecciona un pedido
+            }
+          </h2>
+          <span class="order-subtitle">
+            @if (selectedOrder(); as order) {
+              Recibido a las {{ order.date | date: 'h:mm a' }}
+              @if (order.userEmail) {
+                · Cliente: {{ order.userEmail }}
+              }
+            } @else {
+              Terminal de cobro rápido
+            }
+          </span>
+        </div>
+        <button
+          type="button"
+          class="btn-cancel"
+          [disabled]="!selectedOrder()"
+          (click)="cancel()"
+        >
+          Cancelar Pedido
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Precio Unit.</th>
+              <th class="center">Cantidad</th>
+              <th class="text-right">Subtotal</th>
+              <th class="text-right">Quitar</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (selectedOrder(); as order) {
+              @if (order.items.length === 0) {
+                <tr>
+                  <td colspan="5" class="empty-table-msg">
+                    El pedido no tiene productos. Agrega uno o cancela la orden.
+                  </td>
+                </tr>
+              } @else {
+                @for (item of order.items; track item.product.id) {
+                  <tr>
+                    <td>
+                      <div class="product-cell">
+                        <img class="row-thumb" [src]="item.product.image" [alt]="item.product.name" />
+                        <strong>{{ item.product.name }}</strong>
+                      </div>
+                    </td>
+                    <td>{{ item.product.price | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</td>
+                    <td class="center">
+                      <div class="qty-controls compact">
+                        <button
+                          type="button"
+                          class="qty-btn"
+                          (click)="decreaseItem(item.product.id)"
+                          [attr.aria-label]="'Quitar una unidad de ' + item.product.name"
+                        >
+                          −
+                        </button>
+                        <span class="qty-value">{{ item.quantity }}</span>
+                        <button
+                          type="button"
+                          class="qty-btn add"
+                          (click)="increaseItem(item.product.id)"
+                          [attr.aria-label]="'Agregar una unidad de ' + item.product.name"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
+                    <td class="text-right">
+                      <strong>
+                        {{ item.product.price * item.quantity | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                      </strong>
+                    </td>
+                    <td class="text-right">
+                      <button
+                        type="button"
+                        class="trash-btn"
+                        (click)="removeItem(item.product.id)"
+                        [attr.aria-label]="'Eliminar ' + item.product.name + ' del pedido'"
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                }
+              }
+            } @else {
+              <tr>
+                <td colspan="5" class="empty-table-msg">
+                  Selecciona una orden de la cola para procesar el cobro.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (selectedOrder(); as order) {
+        <div class="add-product-bar">
+          <label class="sr-only" for="product-to-add">Añadir producto al pedido</label>
+          <select
+            id="product-to-add"
+            [value]="productToAdd()"
+            (change)="onSelectProduct($event)"
+          >
+            <option value="">Selecciona un producto del catálogo...</option>
+            @for (product of catalog; track product.id) {
+              <option [value]="product.id">
+                {{ product.name }} — {{ product.price | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+              </option>
+            }
+          </select>
+          <button
+            type="button"
+            class="add-item-btn"
+            [disabled]="productToAdd() === ''"
+            (click)="addProductToOrder()"
+          >
+            Agregar al pedido
+          </button>
+          <span class="order-id-hint">{{ order.id }}</span>
+        </div>
+      }
+
+      <div class="order-totals-bar">
+        <div class="total-item">
+          <span>Artículos</span>
+          <strong class="total-secondary">{{ selectedOrderItemCount() }}</strong>
+        </div>
+        <div class="total-item total-main">
+          <span>TOTAL A COBRAR</span>
+          <strong>{{ selectedOrderTotal() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+        </div>
+      </div>
+    </main>
+
+    <aside class="payment-panel">
+      <h2>Procesar Pago</h2>
+
+      <div class="payment-methods">
+        <label class="pay-option" [class.active]="paymentMethod() === 'efectivo'">
+          <input
+            type="radio"
+            name="pay-method"
+            value="efectivo"
+            [checked]="paymentMethod() === 'efectivo'"
+            (change)="setPaymentMethod('efectivo')"
+          />
+          <span>💵 Efectivo</span>
+        </label>
+        <label class="pay-option" [class.active]="paymentMethod() === 'tarjeta'">
+          <input
+            type="radio"
+            name="pay-method"
+            value="tarjeta"
+            [checked]="paymentMethod() === 'tarjeta'"
+            (change)="setPaymentMethod('tarjeta')"
+          />
+          <span>💳 Tarjeta</span>
+        </label>
+        <label class="pay-option" [class.active]="paymentMethod() === 'nequi'">
+          <input
+            type="radio"
+            name="pay-method"
+            value="nequi"
+            [checked]="paymentMethod() === 'nequi'"
+            (change)="setPaymentMethod('nequi')"
+          />
+          <span>📱 Nequi / Daviplata</span>
+        </label>
+      </div>
+
+      <div class="pay-total">
+        <span>TOTAL A PAGAR</span>
+        <strong>{{ selectedOrderTotal() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+      </div>
+
+      @if (isCashPayment()) {
+        <div class="cash-calculator">
+          <label for="cash-received">Efectivo Recibido:</label>
+          <input
+            id="cash-received"
+            type="number"
+            min="0"
+            inputmode="numeric"
+            placeholder="Ej: 50000"
+            [value]="cashReceived() || ''"
+            [disabled]="!selectedOrder()"
+            (input)="onCashInput($event)"
+          />
+
+          <div class="change-box">
+            <span>Cambio / Devueltas:</span>
+            <strong>{{ change() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+          </div>
+
+          @if (cashInsufficient()) {
+            <p class="hint-error">El efectivo recibido no cubre el total del pedido.</p>
+          }
+        </div>
+      } @else {
+        <div class="digital-notice" role="status">
+          <strong>✅ Pago exacto procesado</strong>
+          <span>Operación aprobada vía terminal digital. No se requieren devueltas.</span>
+        </div>
+      }
+
+      <button
+        type="button"
+        class="btn-charge"
+        [disabled]="!canCharge()"
+        (click)="charge()"
+      >
+        COMPLETAR Y FACTURAR 🖨️
+      </button>
+    </aside>
+  </div>
+</div>

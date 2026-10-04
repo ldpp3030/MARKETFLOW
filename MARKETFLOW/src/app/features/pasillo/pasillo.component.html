@@ -1,0 +1,150 @@
+<div class="mobile-shell">
+  <header class="app-header">
+    <div class="brand">MARKET<span>FLOW</span></div>
+    <button
+      type="button"
+      class="cart-badge"
+      (click)="toggleCart()"
+      [attr.aria-label]="'Ver pedido: ' + itemCount() + ' artículos'"
+    >
+      <span aria-hidden="true">🛒</span>
+      @if (itemCount() > 0) {
+        <span class="count">{{ itemCount() }}</span>
+      }
+    </button>
+  </header>
+
+  <section class="module-title">
+    <h1>Toma de Pedidos</h1>
+    <p>Selecciona los productos de cada pasillo</p>
+  </section>
+
+  <nav class="chip-row" aria-label="Pasillos">
+    <button
+      type="button"
+      class="chip"
+      [class.active]="activeCategory() === 'todos'"
+      (click)="setCategory('todos')"
+    >
+      Todos
+    </button>
+    @for (category of categories; track category.id) {
+      <button
+        type="button"
+        class="chip"
+        [class.active]="activeCategory() === category.id"
+        (click)="setCategory(category.id)"
+      >
+        {{ category.label }}
+      </button>
+    }
+  </nav>
+
+  <main class="product-list">
+    @for (product of filteredProducts(); track product.id) {
+      <article class="product-card">
+        <img class="product-thumb" [src]="product.image" [alt]="product.name" loading="lazy" />
+        <div class="product-info">
+          <h2>{{ product.name }}</h2>
+          <p class="price">{{ product.price | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</p>
+        </div>
+        <div class="qty-controls">
+          <button
+            type="button"
+            class="qty-btn"
+            (click)="decrease(product.id)"
+            [disabled]="quantityOf(product.id) === 0"
+            [attr.aria-label]="'Quitar una unidad de ' + product.name"
+          >
+            −
+          </button>
+          <span class="qty-value">{{ quantityOf(product.id) }}</span>
+          <button
+            type="button"
+            class="qty-btn add"
+            (click)="add(product)"
+            [attr.aria-label]="'Agregar una unidad de ' + product.name"
+          >
+            +
+          </button>
+        </div>
+      </article>
+    } @empty {
+      <p class="empty-msg">No hay productos en este pasillo.</p>
+    }
+  </main>
+
+  @if (itemCount() > 0) {
+    <footer class="cart-bar">
+      <div class="cart-summary">
+        <span class="cart-items">
+          {{ itemCount() }} {{ itemCount() === 1 ? 'artículo' : 'artículos' }}
+        </span>
+        <strong class="cart-total">{{ total() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+      </div>
+      <button type="button" class="send-btn" (click)="sendToCash()">ENVIAR A CAJA ➔</button>
+    </footer>
+  }
+
+  @if (cartOpen()) {
+    <div class="cart-overlay" (click)="closeCart()" aria-hidden="true"></div>
+    <section class="cart-panel" role="dialog" aria-label="Detalle del pedido">
+      <header class="cart-panel-header">
+        <h2>Detalle del Pedido</h2>
+        <button type="button" class="icon-btn" (click)="closeCart()" aria-label="Cerrar">✕</button>
+      </header>
+
+      <div class="cart-panel-body">
+        @if (cart().length === 0) {
+          <p class="empty-msg">Aún no has agregado productos.</p>
+        } @else {
+          @for (item of cart(); track item.product.id) {
+            <div class="cart-row">
+              <img class="cart-thumb" [src]="item.product.image" [alt]="item.product.name" />
+              <div class="cart-row-info">
+                <strong>{{ item.product.name }}</strong>
+                <small>
+                  {{ item.product.price * item.quantity | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+                </small>
+              </div>
+              <div class="qty-controls compact">
+                <button
+                  type="button"
+                  class="qty-btn"
+                  (click)="decrease(item.product.id)"
+                  aria-label="Quitar una unidad"
+                >
+                  −
+                </button>
+                <span class="qty-value">{{ item.quantity }}</span>
+                <button
+                  type="button"
+                  class="qty-btn add"
+                  (click)="add(item.product)"
+                  aria-label="Agregar una unidad"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn danger"
+                  (click)="remove(item.product.id)"
+                  [attr.aria-label]="'Eliminar ' + item.product.name"
+                >
+                  🗑
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      @if (cart().length > 0) {
+        <footer class="cart-panel-footer">
+          <span>Total</span>
+          <strong>{{ total() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+        </footer>
+      }
+    </section>
+  }
+</div>
